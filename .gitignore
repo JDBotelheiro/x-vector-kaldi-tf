@@ -3,3 +3,5 @@ steps/*
 utils/*
 
 *.log
+
+*.pyc
