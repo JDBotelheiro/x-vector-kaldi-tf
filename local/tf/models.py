@@ -5,7 +5,7 @@ import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 import numpy as np
-import queue
+import Queue as queue
 import tensorflow as tf
 
 import kaldi_io

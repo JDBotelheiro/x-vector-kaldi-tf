@@ -4,7 +4,7 @@ import kaldi_io
 import io
 import tarfile
 import time
-import queue
+import Queue as queue
 from threading import Thread
 from kaldi_io import read_mat
 
@@ -224,7 +224,7 @@ class DataLoader(object):
 class TarFileDataLoader(object):
 
     def __init__(self, tar_file, logger=None, queue_size=5):
-        self._train_labels = np.load(tar_file.replace('.tar', '.npy'))
+        self._train_labels = np.load(tar_file.replace('.tar', '.npy'), allow_pickle=True)
         self._tar = tarfile.open(tar_file, 'r')
         self._names = self._tar.getnames()
         self._total_count = len(self._names)

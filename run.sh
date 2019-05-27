@@ -17,10 +17,12 @@
 # https://david-ryan-snyder.github.io/2017/10/04/model_sre16_v2.html
 # for details.
 
-train_cmd=
-nnet_dir=exp/xvector_tf_but_test
-stage=0
-train_stage=-1
+train_cmd=run.pl
+run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp
+nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test
+stage=7
+stage_end=9
+train_stage=-1		# -1 means the system need initialize the network
 iter=
 
 . ./cmd.sh
@@ -36,7 +38,18 @@ sre16_trials=data/sre16_eval_test/trials
 sre16_trials_tgl=data/sre16_eval_test/trials_tgl
 sre16_trials_yue=data/sre16_eval_test/trials_yue
 
-if [ ${stage} -le 0 ]; then
+# VoxCeleb data
+voxceleb_root=/home/feit/Tool/kaldi/egs/voxceleb/v2
+voxceleb_train=${voxceleb_root}/data/train
+voxceleb_test=${voxceleb_root}/data/voxceleb1_test
+voxceleb1_trials=${voxceleb_root}/data/voxceleb1_test/trials
+voxceleb1_root=/export/corpora/VoxCeleb1
+voxceleb2_root=/export/corpora/VoxCeleb2
+voxceleb_nnet_dir=${voxceleb_root}/exp/xvector_nnet_1a
+musan_root=/export/corpora/JHU/musan
+
+if [ ${stage} -le -99 ]; then
+	echo "STAGE -99 PREPARE DATA"
   # Path to some, but not all of the training corpora
   data_root=/mnt/matylda2/data
 
@@ -91,7 +104,8 @@ if [ ${stage} -le 0 ]; then
 
 fi
 
-if [ ${stage} -le 1 ]; then
+if [ ${stage} -le -98 ]; then
+	echo "STAGE -98 EXTRACT FEATURE"
   # Make MFCCs and compute the energy-based VAD for each dataset
   for name in sre swbd sre16_eval_enroll sre16_eval_test sre16_major; do
     steps/make_mfcc.sh --write-utt2num-frames true --mfcc-config conf/mfcc.conf --nj 40 --cmd "${train_cmd}" \
@@ -110,7 +124,8 @@ fi
 # noise, music, and babble, and combined it with the clean data.
 # The combined list will be used to train the xvector DNN.  The SRE
 # subset will be used to train the PLDA model.
-if [ ${stage} -le 2 ]; then
+if [ ${stage} -le -97 ]; then
+	echo "STAGE -97 AUGMENT DATA"
   frame_shift=0.01
   awk -v frame_shift=${frame_shift} '{print $1, $2*frame_shift;}' \
     data/swbd_sre/utt2num_frames > data/swbd_sre/reco2dur
@@ -186,7 +201,8 @@ if [ ${stage} -le 2 ]; then
 fi
 
 # Now we prepare the features to generate examples for xvector training.
-if [ ${stage} -le 3 ]; then
+if [ ${stage} -le -96 ]; then
+	echo "STAGE -96 PREPARE TRAINING"
   # This script applies CMVN and removes nonspeech frames.  Note that this is somewhat
   # wasteful, as it roughly doubles the amount of training data on disk.  After
   # creating training examples, this can be removed.
@@ -218,54 +234,53 @@ if [ ${stage} -le 3 ]; then
   utils/fix_data_dir.sh data/swbd_sre_combined_no_sil
 fi
 
-local/tf/run_xvector.sh --stage ${stage} --train-stage ${train_stage} \
-  --data data/swbd_sre_combined_no_sil --nnet-dir ${nnet_dir} \
+if [ ${stage} -le 6 ] && [ ${stage_end} -ge 6 ]; then
+	echo "STAGE 4-6 TRAINING"
+	local/tf/run_xvector.sh --stage ${stage} --train-stage ${train_stage} \
+  --data ${voxceleb_root}/data/train_combined_no_sil --nnet-dir ${nnet_dir} \
   --egs-dir ${nnet_dir}/egs
-
-if [ ${stage} -le 7 ]; then
-  # The SRE16 major is an unlabeled dataset consisting of Cantonese and
-  # and Tagalog.  This is useful for things like centering, whitening and
-  # score normalization.
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 6G" --nj 40 \
-    ${nnet_dir} data/sre16_major \
-    ${nnet_dir}/xvectors_sre16_major
-
-  # Extract xvectors for SRE data (includes Mixer 6). We'll use this for
-  # things like LDA or PLDA.
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --long 1 --mem 12G" --nj 35 \
-    ${nnet_dir} data/sre_combined \
-    ${nnet_dir}/xvectors_sre_combined
-
-  # The SRE16 test data
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 6G" --nj 40 \
-    ${nnet_dir} data/sre16_eval_test \
-    ${nnet_dir}/xvectors_sre16_eval_test
-
-  # The SRE16 enroll data
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 6G" --nj 40 \
-    ${nnet_dir} data/sre16_eval_enroll \
-    ${nnet_dir}/xvectors_sre16_eval_enroll
+	stage=7
 fi
 
-if [ ${stage} -le 8 ]; then
-  # Compute the mean vector for centering the evaluation xvectors.
-  ${train_cmd} ${nnet_dir}/xvectors_sre16_major/log/compute_mean.log \
-    ivector-mean scp:${nnet_dir}/xvectors_sre16_major/xvector.scp \
-    ${nnet_dir}/xvectors_sre16_major/mean.vec || exit 1;
+if [ ${stage} -le 7 ] && [ ${stage_end} -ge 7 ]; then
+	echo "STAGE ${stage} EXTRACT X-VECTOR"
+	stage=$((${stage}+1))
+  # The VOXCELEB is an unlabeled dataset consisting of Cantonese and
+  # and Tagalog.  This is useful for things like centering, whitening and
+  # score normalization.
+  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 40 \
+    ${nnet_dir} $voxceleb_train \
+    ${nnet_dir}/xvectors_train
 
-  lda_dim=100
+
+  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 40 \
+    ${nnet_dir} $voxceleb_test \
+    ${nnet_dir}/xvectors_voxceleb1_test
+  
+fi
+
+if [ ${stage} -le 8 ] && [ ${stage} -ge 8 ]; then
+	echo "STAGE ${stage} PROCESS X-VECTOR"
+	stage=$((${stage}+1))
+  # Compute the mean vector for centering the evaluation xvectors.
+  ${train_cmd} ${nnet_dir}/xvectors_train/log/compute_mean.log \
+    ivector-mean scp:${nnet_dir}/xvectors_train/xvector.scp \
+    ${nnet_dir}/xvectors_train/mean.vec || exit 1;
+
+  lda_dim=200
   # This script uses LDA to decrease the dimensionality prior to PLDA.
-  ${train_cmd} ${nnet_dir}/xvectors_sre_combined/log/lda.log \
+  ${train_cmd} ${nnet_dir}/xvectors_train/log/lda.log \
     ivector-compute-lda --total-covariance-factor=0.0 --dim=$lda_dim \
-    "ark:ivector-subtract-global-mean scp:${nnet_dir}/xvectors_sre_combined/xvector.scp ark:- |" \
-    ark:data/sre_combined/utt2spk ${nnet_dir}/xvectors_sre_combined/transform.mat || exit 1;
+    "ark:ivector-subtract-global-mean scp:${nnet_dir}/xvectors_train/xvector.scp ark:- |" \
+    ark:${voxceleb_train}/utt2spk ${nnet_dir}/xvectors_train/transform.mat || exit 1;
 
   # Train an out-of-domain PLDA model.
-  ${train_cmd} ${nnet_dir}/xvectors_sre_combined/log/plda.log \
-    ivector-compute-plda ark:data/sre_combined/spk2utt \
-    "ark:ivector-subtract-global-mean scp:${nnet_dir}/xvectors_sre_combined/xvector.scp ark:- | transform-vec ${nnet_dir}/xvectors_sre_combined/transform.mat ark:- ark:- | ivector-normalize-length ark:-  ark:- |" \
-    ${nnet_dir}/xvectors_sre_combined/plda || exit 1;
+  ${train_cmd} ${nnet_dir}/xvectors_train/log/plda.log \
+    ivector-compute-plda ark:${voxceleb_train}/spk2utt \
+    "ark:ivector-subtract-global-mean scp:${nnet_dir}/xvectors_train/xvector.scp ark:- | transform-vec ${nnet_dir}/xvectors_train/transform.mat ark:- ark:- | ivector-normalize-length ark:-  ark:- |" \
+    ${nnet_dir}/xvectors_train/plda || exit 1;
 
+:<<EOF
   # Here we adapt the out-of-domain PLDA model to SRE16 major, a pile
   # of unlabeled in-domain data.  In the future, we will include a clustering
   # based approach for domain adaptation, which tends to work better.
@@ -274,27 +289,33 @@ if [ ${stage} -le 8 ]; then
     ${nnet_dir}/xvectors_sre_combined/plda \
     "ark:ivector-subtract-global-mean scp:${nnet_dir}/xvectors_sre16_major/xvector.scp ark:- | transform-vec ${nnet_dir}/xvectors_sre_combined/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     ${nnet_dir}/xvectors_sre16_major/plda_adapt || exit 1;
+EOF
+
 fi
 
-if [ ${stage} -le 9 ]; then
+if [ ${stage} -le 9 ] && [ ${stage_end} -ge 9 ]; then
+	echo "SAGE ${stage} GET RESULT"
+	stage=$((${stage}+1))
   # Get results using the out-of-domain PLDA model.
-  ${train_cmd} ${nnet_dir}/scores/log/sre16_eval_scoring.log \
+  ${train_cmd} ${run_root}/scores/log/voxceleb1_test_scoring.log \
     ivector-plda-scoring --normalize-length=true \
-    --num-utts=ark:${nnet_dir}/xvectors_sre16_eval_enroll/num_utts.ark \
-    "ivector-copy-plda --smoothing=0.0 ${nnet_dir}/xvectors_sre_combined/plda - |" \
-    "ark:ivector-mean ark:data/sre16_eval_enroll/spk2utt scp:${nnet_dir}/xvectors_sre16_eval_enroll/xvector.scp ark:- | ivector-subtract-global-mean ${nnet_dir}/xvectors_sre16_major/mean.vec ark:- ark:- | transform-vec ${nnet_dir}/xvectors_sre_combined/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-subtract-global-mean ${nnet_dir}/xvectors_sre16_major/mean.vec scp:${nnet_dir}/xvectors_sre16_eval_test/xvector.scp ark:- | transform-vec ${nnet_dir}/xvectors_sre_combined/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
-    "cat '$sre16_trials' | cut -d\  --fields=1,2 |" ${nnet_dir}/scores/sre16_eval_scores || exit 1;
+    "ivector-copy-plda --smoothing=0.0 ${nnet_dir}/xvectors_train/plda - |" \
+    "ark:ivector-subtract-global-mean $nnet_dir/xvectors_train/mean.vec scp:$nnet_dir/xvectors_voxceleb1_test/xvector.scp ark:- | transform-vec $nnet_dir/xvectors_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    "ark:ivector-subtract-global-mean $nnet_dir/xvectors_train/mean.vec scp:$nnet_dir/xvectors_voxceleb1_test/xvector.scp ark:- | transform-vec $nnet_dir/xvectors_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    "cat '$voxceleb1_trials' | cut -d\  --fields=1,2 |" ${run_root}/scores_voxceleb1_test || exit 1;
 
-  utils/filter_scp.pl $sre16_trials_tgl ${nnet_dir}/scores/sre16_eval_scores > ${nnet_dir}/scores/sre16_eval_tgl_scores
-  utils/filter_scp.pl $sre16_trials_yue ${nnet_dir}/scores/sre16_eval_scores > ${nnet_dir}/scores/sre16_eval_yue_scores
-  pooled_eer=$(paste $sre16_trials ${nnet_dir}/scores/sre16_eval_scores | awk '{print $6, $3}' | compute-eer - 2>/dev/null)
-  tgl_eer=$(paste $sre16_trials_tgl ${nnet_dir}/scores/sre16_eval_tgl_scores | awk '{print $6, $3}' | compute-eer - 2>/dev/null)
-  yue_eer=$(paste $sre16_trials_yue ${nnet_dir}/scores/sre16_eval_yue_scores | awk '{print $6, $3}' | compute-eer - 2>/dev/null)
-  echo "Using Out-of-Domain PLDA, EER: Pooled ${pooled_eer} %, Tagalog ${tgl_eer} %, Cantonese ${yue_eer} %"
+    eer=`compute-eer <(${voxceleb_root}/local/prepare_for_eer.py $voxceleb1_trials ${run_root}/scores_voxceleb1_test) 2> /dev/null`
+    mindcf1=`sid/compute_min_dcf.py --p-target 0.01 ${run_root}/scores_voxceleb1_test $voxceleb1_trials 2> /dev/null`
+    mindcf2=`sid/compute_min_dcf.py --p-target 0.001 ${run_root}/scores_voxceleb1_test $voxceleb1_trials 2> /dev/null`
+    echo "EER: $eer%"
+    echo "minDCF(p-target=0.01): $mindcf1"
+    echo "minDCF(p-target=0.001): $mindcf2"
+    
 fi
 
-if [ ${stage} -le 10 ]; then
+if [ ${stage} -le 10 ] && [ ${stage_end} -ge 10 ]; then
+	echo "STAGE ${stage} GET ADAPTED RESULT"
+	stage=$((${stage}+1))
   # Get results using the adapted PLDA model.
   ${train_cmd} ${nnet_dir}/scores/log/sre16_eval_scoring_adapt.log \
     ivector-plda-scoring --normalize-length=true \

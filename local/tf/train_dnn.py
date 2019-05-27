@@ -503,8 +503,8 @@ def train(args, run_opts):
     # avg_num_jobs = (num_jobs_initial + num_jobs_final) / 2.
     num_archives_to_process = int(args.num_epochs * num_archives)
     num_archives_processed = 0
-    num_iters = ((num_archives_to_process * 2) / (args.num_jobs_initial + args.num_jobs_final))
-
+    num_iters = int(((num_archives_to_process * 2) / (args.num_jobs_initial +
+        args.num_jobs_final)))
     # If do_final_combination is True, compute the set of models_to_combine.
     # Otherwise, models_to_combine will be none.
     if args.do_final_combination:
@@ -607,4 +607,12 @@ def main():
 
 
 if __name__ == "__main__":
+    # sys.argv = ["train_dnn.py","--stage=-1","--tf-model-class=ModelWithoutDropoutTdnn", "--cmd=run.pl",
+    #         "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
+    #         "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=1", "--initial-effective-lrate=0.001",
+    #         "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=2",
+    #             "--dropout-schedule=0,0@0.20,0.1@0.50,0",
+    #             "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test/egs",
+    #             "--preserve-model-interval=10", "--use-gpu=yes",
+    #             "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test"]
     main()

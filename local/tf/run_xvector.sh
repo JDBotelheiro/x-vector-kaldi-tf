@@ -48,20 +48,23 @@ egs_dir=exp/xvector_nnet_1ha/egs
 # Decreasing this value increases the number of archives, while decreasing the
 # number of examples per archive.
 if [ ${stage} -le 4 ]; then
+	echo "STAGE ${stage}"
   echo "$0: Getting neural network training egs";
   # dump egs.
   local/tf/get_egs.sh --cmd "${train_cmd} --long 1 --scratch 1" \
-    --nj 10 \
+    --nj 8 \
     --stage 0 \
     --frames-per-iter 1000000000 \
-    --frames-per-iter-diagnostic 1000000 \
+    --frames-per-iter-diagnostic 100000 \
     --min-frames-per-chunk 200 \
     --max-frames-per-chunk 400 \
-    --num-diagnostic-archives 3 \
+    --num-diagnostic-archives 1 \
     --minibatch-size ${minibatch_size} \
-    --num-repeats 35 \
+    --num-repeats 50 \
     "${data}" "${egs_dir}"
 fi
+
+
 # This chunk-size corresponds to the maximum number of frames the
 # stats layer is able to pool over.  In this script, it corresponds
 # to 100 seconds.  If the input recording is greater than 100 seconds,
@@ -80,15 +83,15 @@ echo "${min_chunk_size}" > ${nnet_dir}/min_chunk_size
 
 
 #dropout_schedule='0,0@0.16,0.25@0.32,0.25@0.64,0@0.96,0'
-dropout_schedule='0,0@0.10,0.1@0.50,0'
+dropout_schedule='0,0@0.20,0.1@0.50,0'
 
 random_seed=2468
 num_targets=$(wc -w ${egs_dir}/pdf2num | awk '{print $1}')
 if [ ${stage} -le 6 ]; then
   local/tf/train_dnn.py \
     --stage=${train_stage} \
-    --tf-model-class="ModelWithoutDropout" \
-    --cmd="${train_cmd} --long 0" \
+    --tf-model-class="ModelWithoutDropoutTdnn" \
+    --cmd="run.pl" \
     --num-targets=${num_targets} \
     --proportional-shrink=10 \
     --minibatch-size=${minibatch_size} \
@@ -103,7 +106,7 @@ if [ ${stage} -le 6 ]; then
     --dropout-schedule="$dropout_schedule" \
     --egs-dir="${egs_dir}" \
     --preserve-model-interval=10 \
-    --use-gpu=yes \
+    --use-gpu="yes" \
     --dir=${nnet_dir}  || exit 1;
 fi
 
