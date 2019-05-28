@@ -1,9 +1,10 @@
 sid/*
 steps/*
 utils/*
-*/.idea/*
-debug/*
-*.log
+.idea/
+debug/
 
+*.log
+*.iml
 *.pyc
 
