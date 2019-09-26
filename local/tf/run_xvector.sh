@@ -102,7 +102,7 @@ if [ ${stage} -le 6 ]; then
     --initial-effective-lrate=0.001 \
     --final-effective-lrate=0.0001 \
     --random-seed=${random_seed} \
-    --num-epochs=2 \
+    --num-epochs=3 \
     --dropout-schedule="$dropout_schedule" \
     --egs-dir="${egs_dir}" \
     --preserve-model-interval=10 \

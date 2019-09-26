@@ -18,7 +18,7 @@ def get_args():
     parser.add_argument("--vast-score-file", type=str, dest='vast_score_file',
                         help="Path to the vast score file.", default="")
 
-    parser.add_argument("--select-best-test-spk", type=str, dest='select_best_test_spk', choices=["yes", "no"],
+    parser.add_argument("--select-best-debug-spk", type=str, dest='select_best_test_spk', choices=["yes", "no"],
                         help="Select maximum scores based on different diarization candidate.", default="no")
 
     parser.add_argument("input_file", type=str, help="Shows input scores file.")

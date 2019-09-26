@@ -17,12 +17,15 @@
 # https://david-ryan-snyder.github.io/2017/10/04/model_sre16_v2.html
 # for details.
 
+data_aug=false		# if use data augmentation
+workid=_clean		# work ID
+
 train_cmd=run.pl
-run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp
-nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test
-stage=7
+run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}
+nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}/xvector_tf_but_test
+stage=3
 stage_end=9
-train_stage=-1		# -1 means the system need initialize the network
+train_stage=168		# -1 means the system need initialize the network
 iter=
 
 . ./cmd.sh
@@ -39,7 +42,8 @@ sre16_trials_tgl=data/sre16_eval_test/trials_tgl
 sre16_trials_yue=data/sre16_eval_test/trials_yue
 
 # VoxCeleb data
-voxceleb_root=/home/feit/Tool/kaldi/egs/voxceleb/v2
+voxceleb_root=/media/feit/Data/Archive/Home/Tool/kaldi/egs/voxceleb/v2
+voxceleb_dir=/home/feit/Tool/kaldi/egs/voxceleb/v2
 voxceleb_train=${voxceleb_root}/data/train
 voxceleb_test=${voxceleb_root}/data/voxceleb1_test
 voxceleb1_trials=${voxceleb_root}/data/voxceleb1_test/trials
@@ -234,10 +238,50 @@ if [ ${stage} -le -96 ]; then
   utils/fix_data_dir.sh data/swbd_sre_combined_no_sil
 fi
 
+
+# Now we prepare the features to generate examples for xvector training.
+if [ ${stage} -le 3 ]; then
+	echo "STAGE 3 PREPARE TRAINING"
+  # This script applies CMVN and removes nonspeech frames.  Note that this is somewhat
+  # wasteful, as it roughly doubles the amount of training data on disk.  After
+  # creating training examples, this can be removed.
+  if $data_aug; then
+  	in_data=${voxceleb_root}/data/train_combined		# augment data
+  else
+  	in_data=${voxceleb_root}/data/train		# only use original data without augmentation
+  fi
+  ${voxceleb_dir}/local/nnet3/xvector/prepare_feats_for_egs.sh --nj 40 --cmd "$train_cmd" \
+    $in_data data${work_id}/train_combined_no_sil exp${work_id}/train_combined_no_sil
+  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+  # Now, we need to remove features that are too short after removing silence
+  # frames.  We want atleast 5s (500 frames) per utterance.
+  min_len=400
+  mv data/train_combined_no_sil/utt2num_frames data/train_combined_no_sil/utt2num_frames.bak
+  awk -v min_len=${min_len} '$2 > min_len {print $1, $2}' data/train_combined_no_sil/utt2num_frames.bak > data/train_combined_no_sil/utt2num_frames
+  utils/filter_scp.pl data/train_combined_no_sil/utt2num_frames data/train_combined_no_sil/utt2spk > data/train_combined_no_sil/utt2spk.new
+  mv data/train_combined_no_sil/utt2spk.new data/train_combined_no_sil/utt2spk
+  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+
+  # We also want several utterances per speaker. Now we'll throw out speakers
+  # with fewer than 8 utterances.
+  min_num_utts=8
+  awk '{print $1, NF-1}' data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/spk2num
+  awk -v min_num_utts=${min_num_utts} '$2 >= min_num_utts {print $1, $2}' data/train_combined_no_sil/spk2num | utils/filter_scp.pl - data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/spk2utt.new
+  mv data/train_combined_no_sil/spk2utt.new data/train_combined_no_sil/spk2utt
+  utils/spk2utt_to_utt2spk.pl data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/utt2spk
+
+  ${voxceleb_dir}/utils/filter_scp.pl data/train_combined_no_sil/utt2spk data/train_combined_no_sil/utt2num_frames > data/train_combined_no_sil/utt2num_frames.new
+  mv data/train_combined_no_sil/utt2num_frames.new data/train_combined_no_sil/utt2num_frames
+
+  # Now we're ready to create training examples.
+  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+fi
+
+
 if [ ${stage} -le 6 ] && [ ${stage_end} -ge 6 ]; then
 	echo "STAGE 4-6 TRAINING"
 	local/tf/run_xvector.sh --stage ${stage} --train-stage ${train_stage} \
-  --data ${voxceleb_root}/data/train_combined_no_sil --nnet-dir ${nnet_dir} \
+  --data data/train_combined_no_sil --nnet-dir ${nnet_dir} \
   --egs-dir ${nnet_dir}/egs
 	stage=7
 fi
@@ -304,7 +348,7 @@ if [ ${stage} -le 9 ] && [ ${stage_end} -ge 9 ]; then
     "ark:ivector-subtract-global-mean $nnet_dir/xvectors_train/mean.vec scp:$nnet_dir/xvectors_voxceleb1_test/xvector.scp ark:- | transform-vec $nnet_dir/xvectors_train/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     "cat '$voxceleb1_trials' | cut -d\  --fields=1,2 |" ${run_root}/scores_voxceleb1_test || exit 1;
 
-    eer=`compute-eer <(${voxceleb_root}/local/prepare_for_eer.py $voxceleb1_trials ${run_root}/scores_voxceleb1_test) 2> /dev/null`
+    eer=`compute-eer <(${voxceleb_dir}/local/prepare_for_eer.py $voxceleb1_trials ${run_root}/scores_voxceleb1_test) 2> /dev/null`
     mindcf1=`sid/compute_min_dcf.py --p-target 0.01 ${run_root}/scores_voxceleb1_test $voxceleb1_trials 2> /dev/null`
     mindcf2=`sid/compute_min_dcf.py --p-target 0.001 ${run_root}/scores_voxceleb1_test $voxceleb1_trials 2> /dev/null`
     echo "EER: $eer%"

@@ -125,9 +125,9 @@ def process_files(args):
         utt2subject[utt] = subject
         line = segment_key.readline()
 
-    audio_files = os.listdir(os.path.join(sre18_dev_dir, 'data/test'))
+    audio_files = os.listdir(os.path.join(sre18_dev_dir, 'data/debug'))
     for file_name in audio_files:
-        file_path = os.path.join(sre18_dev_dir, 'data/test/' + file_name)
+        file_path = os.path.join(sre18_dev_dir, 'data/debug/' + file_name)
         name, extension = file_name.split('.')
         utt2spk.write('{utt} {utt}\n'.format(utt=name))
         write_to_wav_scp(wav_scp, sampling_frequency, extension, name, file_path)
