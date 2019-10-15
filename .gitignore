@@ -7,6 +7,7 @@ debug/
 *.log
 *.iml
 *.pyc
+core
 
 data*/
 exp*/
