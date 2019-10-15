@@ -12,6 +12,7 @@ import traceback
 import time
 
 import models
+import ladder_block as ladder
 import ze_utils as utils
 
 MAX_TRY_COUNT = 16
@@ -192,7 +193,10 @@ def process_args(args):
         raise Exception("This scripts expects {0} to exist.".format(args.dir))
 
     try:
-        eval('models.%s()' % args.tf_model_class)
+        if args.tf_model_class == "ModelWithoutDropoutLadderTdnn":
+            eval('ladder.%s()' % args.tf_model_class)
+        else:
+            eval('models.%s()' % args.tf_model_class)
     except AttributeError:
         raise Exception("The specified class name {0} does not exist.".format(args.tf_model_class))
 
@@ -489,7 +493,10 @@ def train(args, run_opts):
             logger.info("Preparing the initial network.")
             num_classes = args.num_targets
             model_name = args.tf_model_class
-            model = eval('models.%s()' % model_name)
+            if model_name == "ModelWithoutDropoutLadderTdnn":
+                model = eval('ladder.%s()' % model_name)
+            else:
+                model = eval('models.%s()' % model_name)
             logger.info("Start calling build_model to initialize the model %s ..." % model_name)
             model.build_model(num_classes, egs_feat_dim, '{0}/model_0'.format(args.dir), logger=logger)
             with open(os.path.join(args.dir, 'model_name.txt'), 'wt') as fid:
@@ -610,9 +617,9 @@ if __name__ == "__main__":
     # sys.argv = ["train_dnn.py","--stage=-1","--tf-model-class=ModelWithoutDropoutTdnn", "--cmd=run.pl",
     #         "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
     #         "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=1", "--initial-effective-lrate=0.001",
-    #         "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=2",
+    #         "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=3",
     #             "--dropout-schedule=0,0@0.20,0.1@0.50,0",
-    #             "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test/egs",
+    #             "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs",
     #             "--preserve-model-interval=10", "--use-gpu=yes",
-    #             "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp/xvector_tf_but_test"]
+    #             "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"]
     main()

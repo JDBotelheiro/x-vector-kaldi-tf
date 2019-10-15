@@ -96,7 +96,7 @@ class Model(object):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 scores = tf.nn.xw_plus_b(h, w, b, name="scores")
@@ -502,7 +502,7 @@ class ModelWithoutDropout(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 scores = tf.nn.xw_plus_b(h, w, b, name="scores")
@@ -607,7 +607,7 @@ class ModelWithoutDropoutTdnn(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 scores = tf.nn.xw_plus_b(h, w, b, name="scores")
@@ -710,7 +710,7 @@ class ModelWithoutDropoutPRelu(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 scores = tf.nn.xw_plus_b(h, w, b, name="scores")
@@ -824,7 +824,7 @@ class ModelL2LossWithoutDropoutPRelu(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 # Apply L2 loss
@@ -943,7 +943,7 @@ class ModelL2LossWithoutDropoutLRelu(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 # Apply L2 loss
@@ -1076,7 +1076,7 @@ class ModelL2LossWithoutDropoutLReluAttention(Model):
             # Softmax
             with tf.variable_scope("output"):
                 w = tf.get_variable("w", shape=[prev_dim, num_classes],
-                                    initializer=tf.contrib.layers.xavier_initializer())
+                                    initializer=tf.glorot_uniform_initializer())
                 b = tf.Variable(tf.constant(0.1, shape=[num_classes]), name="b")
 
                 # Apply L2 loss
@@ -1242,3 +1242,10 @@ class ModelL2LossWithoutDropoutReluHeInit(Model):
 
         if logger is not None:
             logger.info("Building finished.")
+
+
+
+# if __name__ == '__main__':
+#     model = ModelWithoutDropoutTdnn()
+#     model.build_model(7323, 30, '/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/model_0')
+#     print("Done")

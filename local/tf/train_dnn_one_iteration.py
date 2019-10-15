@@ -223,4 +223,14 @@ def main():
 
 
 if __name__ == "__main__":
+    # sys.argv = ["train_dnn_one_iteration.py","--use-gpu=yes","--print-interval=10", "--momentum=0.5",
+    #         "--max-param-change=2.0", "--l2-regularize-factor=1.0", "--random-seed=2468", "--learning-rate=0.001",
+    #             "--scale=0.99", "--minibatch-count=5721", "--feature-dim=30", "--dropout-proportion=0.0",
+    #             "--tar-file=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs/egs.1"
+    #             ".tar", "--ranges-file=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"
+    #                     "/egs/temp/ranges.1",
+    #             "--scp-file=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs/temp"
+    #             "/feats.scp.1", "--shuffle=True", "--minibatch-size=64",
+    #             "--input-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/model_0",
+    #             "--output-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/model_1.1"]
     main()

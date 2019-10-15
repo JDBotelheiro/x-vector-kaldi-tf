@@ -18,14 +18,14 @@
 # for details.
 
 data_aug=false		# if use data augmentation
-workid=_clean		# work ID
+workid=_ladder		# work ID
 
 train_cmd=run.pl
 run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}
 nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}/xvector_tf_but_test
-stage=3
+stage=4
 stage_end=9
-train_stage=168		# -1 means the system need initialize the network
+train_stage=-1		# -1 means the system need initialize the network
 iter=
 
 . ./cmd.sh
@@ -250,38 +250,39 @@ if [ ${stage} -le 3 ]; then
   else
   	in_data=${voxceleb_root}/data/train		# only use original data without augmentation
   fi
+  utils/fix_data_dir.sh $in_data
   ${voxceleb_dir}/local/nnet3/xvector/prepare_feats_for_egs.sh --nj 40 --cmd "$train_cmd" \
-    $in_data data${work_id}/train_combined_no_sil exp${work_id}/train_combined_no_sil
-  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+    $in_data data${workid}/train_combined_no_sil exp${workid}/train_combined_no_sil
+  ${voxceleb_dir}/utils/fix_data_dir.sh data${workid}/train_combined_no_sil
   # Now, we need to remove features that are too short after removing silence
   # frames.  We want atleast 5s (500 frames) per utterance.
   min_len=400
-  mv data/train_combined_no_sil/utt2num_frames data/train_combined_no_sil/utt2num_frames.bak
-  awk -v min_len=${min_len} '$2 > min_len {print $1, $2}' data/train_combined_no_sil/utt2num_frames.bak > data/train_combined_no_sil/utt2num_frames
-  utils/filter_scp.pl data/train_combined_no_sil/utt2num_frames data/train_combined_no_sil/utt2spk > data/train_combined_no_sil/utt2spk.new
-  mv data/train_combined_no_sil/utt2spk.new data/train_combined_no_sil/utt2spk
-  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+  mv data${workid}/train_combined_no_sil/utt2num_frames data${workid}/train_combined_no_sil/utt2num_frames.bak
+  awk -v min_len=${min_len} '$2 > min_len {print $1, $2}' data${workid}/train_combined_no_sil/utt2num_frames.bak > data${workid}/train_combined_no_sil/utt2num_frames
+  utils/filter_scp.pl data${workid}/train_combined_no_sil/utt2num_frames data${workid}/train_combined_no_sil/utt2spk > data${workid}/train_combined_no_sil/utt2spk.new
+  mv data${workid}/train_combined_no_sil/utt2spk.new data${workid}/train_combined_no_sil/utt2spk
+  ${voxceleb_dir}/utils/fix_data_dir.sh data${workid}/train_combined_no_sil
 
   # We also want several utterances per speaker. Now we'll throw out speakers
   # with fewer than 8 utterances.
   min_num_utts=8
-  awk '{print $1, NF-1}' data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/spk2num
-  awk -v min_num_utts=${min_num_utts} '$2 >= min_num_utts {print $1, $2}' data/train_combined_no_sil/spk2num | utils/filter_scp.pl - data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/spk2utt.new
-  mv data/train_combined_no_sil/spk2utt.new data/train_combined_no_sil/spk2utt
-  utils/spk2utt_to_utt2spk.pl data/train_combined_no_sil/spk2utt > data/train_combined_no_sil/utt2spk
+  awk '{print $1, NF-1}' data${workid}/train_combined_no_sil/spk2utt > data${workid}/train_combined_no_sil/spk2num
+  awk -v min_num_utts=${min_num_utts} '$2 >= min_num_utts {print $1, $2}' data${workid}/train_combined_no_sil/spk2num | utils/filter_scp.pl - data${workid}/train_combined_no_sil/spk2utt > data${workid}/train_combined_no_sil/spk2utt.new
+  mv data${workid}/train_combined_no_sil/spk2utt.new data${workid}/train_combined_no_sil/spk2utt
+  utils/spk2utt_to_utt2spk.pl data${workid}/train_combined_no_sil/spk2utt > data${workid}/train_combined_no_sil/utt2spk
 
-  ${voxceleb_dir}/utils/filter_scp.pl data/train_combined_no_sil/utt2spk data/train_combined_no_sil/utt2num_frames > data/train_combined_no_sil/utt2num_frames.new
-  mv data/train_combined_no_sil/utt2num_frames.new data/train_combined_no_sil/utt2num_frames
+  ${voxceleb_dir}/utils/filter_scp.pl data${workid}/train_combined_no_sil/utt2spk data${workid}/train_combined_no_sil/utt2num_frames > data${workid}/train_combined_no_sil/utt2num_frames.new
+  mv data${workid}/train_combined_no_sil/utt2num_frames.new data${workid}/train_combined_no_sil/utt2num_frames
 
   # Now we're ready to create training examples.
-  ${voxceleb_dir}/utils/fix_data_dir.sh data/train_combined_no_sil
+  ${voxceleb_dir}/utils/fix_data_dir.sh data${workid}/train_combined_no_sil
 fi
 
 
 if [ ${stage} -le 6 ] && [ ${stage_end} -ge 6 ]; then
 	echo "STAGE 4-6 TRAINING"
 	local/tf/run_xvector.sh --stage ${stage} --train-stage ${train_stage} \
-  --data data/train_combined_no_sil --nnet-dir ${nnet_dir} \
+  --data data${workid}/train_combined_no_sil --nnet-dir ${nnet_dir} \
   --egs-dir ${nnet_dir}/egs
 	stage=7
 fi

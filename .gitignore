@@ -8,3 +8,5 @@ debug/
 *.iml
 *.pyc
 
+data*/
+exp*/
