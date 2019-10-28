@@ -90,7 +90,7 @@ num_targets=$(wc -w ${egs_dir}/pdf2num | awk '{print $1}')
 if [ ${stage} -le 6 ]; then
   local/tf/train_dnn.py \
     --stage=${train_stage} \
-    --tf-model-class="ModelWithoutDropoutLadderTdnn" \
+    --tf-model-class="ModelWithoutDropoutTdnn" \
     --cmd="run.pl" \
     --num-targets=${num_targets} \
     --proportional-shrink=10 \
@@ -98,7 +98,7 @@ if [ ${stage} -le 6 ]; then
     --max-param-change=2 \
     --momentum=0.5 \
     --num-jobs-initial=1 \
-    --num-jobs-final=1 \
+    --num-jobs-final=2 \
     --initial-effective-lrate=0.0001 \
     --final-effective-lrate=0.00001 \
     --random-seed=${random_seed} \
@@ -108,7 +108,7 @@ if [ ${stage} -le 6 ]; then
     --preserve-model-interval=10 \
     --use-gpu="yes" \
     --dir=${nnet_dir}  || exit 1;
-    #--tf-model-class="ModelWithoutDropoutTdnn" \
+    #--tf-model-class="ModelWithoutDropoutLadderTdnn" \
 fi
 
 exit 0;

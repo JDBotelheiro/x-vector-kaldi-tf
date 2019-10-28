@@ -19,7 +19,7 @@
 
 set -o nounset                              # Treat unset variables as an error
 
-exp_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_ladder/xvector_tf_but_test/log
+exp_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/log
 latest=0
 for f in $exp_dir/train.*.log
 do

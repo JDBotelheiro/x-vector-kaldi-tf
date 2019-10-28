@@ -9,6 +9,7 @@ import subprocess
 import threading
 import thread
 import traceback
+import tensorflow as tf
 
 import datetime
 
@@ -18,26 +19,30 @@ logger.addHandler(logging.NullHandler())
 cuda_command = 'nvidia-smi --query-gpu=memory.free,memory.total --format=csv | tail -n+2 | ' \
                'awk \'BEGIN{FS=" "}{if ($1/$3 > 0.98) print NR-1}\''
 
-cuda_command2 = 'nvidia-smi -q | grep "Minor\|Processes" | grep "None" -B1 | tr -d " " | cut -d ":" -f2 | sed -n "1p"'
+cuda_command2 = 'nvidia-smi -q | grep "Minor\|Processes" | grep "None" -B1 | tr -d " " | cut -d ":" -f2 | sed "n;d"'
 gpu_used_pid = 'nvidia-smi -q | grep "Process ID" | tr -d " " | cut -d ":" -f2'
 
 
 def set_cuda_visible_devices(use_gpu=True, logger=None):
     try:
-        os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-        # if use_gpu:
-        #     free_gpu = subprocess.check_output(cuda_command2, shell=True)
-        #     if len(free_gpu) == 0:
-        #         create_log_on_gpu_error()
-        #         if logger is not None:
-        #             logger.info("No GPU seems to be available and I cannot continue without GPU.")
-        #         raise Exception("No GPU seems to be available and I cannot continue without GPU.")
-        #     else:
-        #         os.environ["CUDA_VISIBLE_DEVICES"] = free_gpu.decode().strip()
-        #     if logger is not None:
-        #         logger.info("CUDA_VISIBLE_DEVICES " + os.environ["CUDA_VISIBLE_DEVICES"])
-        # else:
-        #     os.environ["CUDA_VISIBLE_DEVICES"] = ''
+        # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+        if use_gpu:
+            free_gpu = subprocess.check_output(cuda_command2, shell=True)
+            free_gpu = free_gpu.lstrip().rstrip()
+            free_gpu = free_gpu.replace('\n',',')
+            print("FREE GPU: %s" % free_gpu)
+            if len(free_gpu) == 0:
+                create_log_on_gpu_error()
+                if logger is not None:
+                    logger.info("No GPU seems to be available and I cannot continue without GPU.")
+                raise Exception("No GPU seems to be available and I cannot continue without GPU.")
+            else:
+                os.environ["CUDA_VISIBLE_DEVICES"] = free_gpu.decode().strip()
+            if logger is not None:
+                logger.info("CUDA_VISIBLE_DEVICES " + os.environ["CUDA_VISIBLE_DEVICES"])
+            print("CUDA_VISIBLE_DEVICES: %s" % os.environ["CUDA_VISIBLE_DEVICES"])
+        else:
+            os.environ["CUDA_VISIBLE_DEVICES"] = ''
         if not use_gpu:
             os.environ["CUDA_VISIBLE_DEVICES"] = ''
     except subprocess.CalledProcessError:

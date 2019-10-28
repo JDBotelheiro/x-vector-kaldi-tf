@@ -223,7 +223,10 @@ class Model(object):
         random_seed = 4 * args.random_seed + args.random_seed % 3
 
         set_cuda_visible_devices(use_gpu=True, logger=logger)
-        with tf.Session(config=tf.ConfigProto(allow_soft_placement=False, log_device_placement=False)) as sess:
+        config = tf.ConfigProto(allow_soft_placement=False, log_device_placement=False)
+        config.gpu_options.allow_growth = True
+        print("allow gpu memory growth!!!")
+        with tf.Session(config=config) as sess:
             if random_seed != 0:
                 tf.set_random_seed(random_seed)
             self.load_model(sess, input_dir, logger)

@@ -342,7 +342,8 @@ def train_one_iteration(model_dir, _iter, random_seed, egs_dir,
             fid.write(str(random_seed))
 
     # Sets off some background jobs to compute train and validation set objectives
-    eval_trained_dnn(model_dir, _iter, egs_dir, run_opts)
+    # TODO: uncomment
+    # eval_trained_dnn(model_dir, _iter, egs_dir, run_opts)
 
     new_model = "{0}/model_{1}/model.meta".format(model_dir, _iter + 1)
     if utils.is_correct_model_dir("{0}/model_{1}".format(model_dir, _iter + 1)):
@@ -614,12 +615,13 @@ def main():
 
 
 if __name__ == "__main__":
-    # sys.argv = ["train_dnn.py","--stage=-1","--tf-model-class=ModelWithoutDropoutTdnn", "--cmd=run.pl",
-    #         "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
-    #         "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=1", "--initial-effective-lrate=0.001",
-    #         "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=3",
-    #             "--dropout-schedule=0,0@0.20,0.1@0.50,0",
-    #             "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs",
-    #             "--preserve-model-interval=10", "--use-gpu=yes",
-    #             "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"]
+    sys.argv = ["train_dnn.py","--stage=47","--tf-model-class=ModelWithoutDropoutTdnn",
+                "--cmd=/home/feit/Tool/kaldi/egs/wsj/s5/utils/parallel/run.pl",
+            "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
+            "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=2", "--initial-effective-lrate=0.001",
+            "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=3",
+                "--dropout-schedule=0,0@0.20,0.1@0.50,0",
+                "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs",
+                "--preserve-model-interval=10", "--use-gpu=yes",
+                "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"]
     main()

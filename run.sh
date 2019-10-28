@@ -18,14 +18,14 @@
 # for details.
 
 data_aug=false		# if use data augmentation
-workid=_ladder		# work ID
+workid=_clean		# work ID
 
 train_cmd=run.pl
 run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}
 nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}/xvector_tf_but_test
 stage=6
 stage_end=9
-train_stage=17		# -1 means the system need initialize the network
+train_stage=48		# -1 means the system need initialize the network
 iter=
 
 . ./cmd.sh
