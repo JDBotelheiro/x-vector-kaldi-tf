@@ -98,9 +98,9 @@ if [ ${stage} -le 6 ]; then
     --max-param-change=2 \
     --momentum=0.5 \
     --num-jobs-initial=1 \
-    --num-jobs-final=2 \
-    --initial-effective-lrate=0.0001 \
-    --final-effective-lrate=0.00001 \
+    --num-jobs-final=1 \
+    --initial-effective-lrate=0.001 \
+    --final-effective-lrate=0.0001 \
     --random-seed=${random_seed} \
     --num-epochs=3 \
     --dropout-schedule="$dropout_schedule" \

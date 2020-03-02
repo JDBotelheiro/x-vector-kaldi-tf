@@ -19,6 +19,9 @@
 
 set -o nounset                              # Treat unset variables as an error
 
-expdir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_ladder/xvector_tf_but_test
+expdir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test
 rm -r $expdir/log/ 1>/dev/null 2>&1
 rm -r $expdir/model_*/ 1>/dev/null 2>&1
+rm -r $expdir/xvectors_*/ 1>/dev/null 2>&1
+rm $expdir/accuracy.report 1>/dev/null 2>&1
+rm $expdir/model_final 1>/dev/null 2>&1

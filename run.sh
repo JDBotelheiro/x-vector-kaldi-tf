@@ -17,15 +17,15 @@
 # https://david-ryan-snyder.github.io/2017/10/04/model_sre16_v2.html
 # for details.
 
-data_aug=false		# if use data augmentation
-workid=_clean		# work ID
+data_aug=true		# if use data augmentation
+workid=_tfclean		# work ID
 
 train_cmd=run.pl
 run_root=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}
 nnet_dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp${workid}/xvector_tf_but_test
-stage=6
+stage=9
 stage_end=9
-train_stage=48		# -1 means the system need initialize the network
+train_stage=-1		# -1 means the system need initialize the network
 iter=
 
 . ./cmd.sh
@@ -42,7 +42,7 @@ sre16_trials_tgl=data/sre16_eval_test/trials_tgl
 sre16_trials_yue=data/sre16_eval_test/trials_yue
 
 # VoxCeleb data
-voxceleb_root=/media/feit/Data/Archive/Home/Tool/kaldi/egs/voxceleb/v2
+voxceleb_root=/media/feit/Data/Archive/Home/Tool/kaldi/egs/voxceleb/tfv2
 voxceleb_dir=/home/feit/Tool/kaldi/egs/voxceleb/v2
 voxceleb_train=${voxceleb_root}/data/train
 voxceleb_test=${voxceleb_root}/data/voxceleb1_test
@@ -293,12 +293,12 @@ if [ ${stage} -le 7 ] && [ ${stage_end} -ge 7 ]; then
   # The VOXCELEB is an unlabeled dataset consisting of Cantonese and
   # and Tagalog.  This is useful for things like centering, whitening and
   # score normalization.
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 40 \
+  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 8 \
     ${nnet_dir} $voxceleb_train \
     ${nnet_dir}/xvectors_train
 
 
-  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 40 \
+  local/tf/extract_xvectors.sh --cmd "${train_cmd} --mem 3G" --nj 8 \
     ${nnet_dir} $voxceleb_test \
     ${nnet_dir}/xvectors_voxceleb1_test
   

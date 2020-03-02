@@ -151,9 +151,7 @@ class ModelWithoutDropoutLadderTdnn(Model):
         dilation_rates = [1, 1, 2, 3, 1, 1]
         noise_std = 0.3  # scaling factor for noise used in corrupted encoder
         # hyperparameters that denote the importance of each layer
-        # denoising_cost = [1.0, 0.1, 0.05, 0.05, 0.05, 0.05] #xvector_ladder1
-        # denoising_cost = [10.0, 1.0, 0.1, 0.1, 0.1, 0.1] #xvector_ladder
-        denoising_cost = [10.0, 1.0, 0.1, 0.1, 0.1, 0.1] #xvector_ladder2
+        denoising_cost = [10.0, 1.0, 0.1, 0.1, 0.1, 0.1]
 
         if logger is not None:
             logger.info("Start building the model ...")

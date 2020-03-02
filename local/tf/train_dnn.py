@@ -8,12 +8,13 @@ import pprint
 import shutil
 import sys
 import traceback
-
+import glob
 import time
-
+import re
 import models
 import ladder_block as ladder
 import ze_utils as utils
+import subprocess
 
 MAX_TRY_COUNT = 16
 
@@ -233,7 +234,6 @@ def train_new_models(model_dir, _iter, random_seed, num_jobs,
     """ Called from train_one_iteration(), this model does one iteration of
     training with 'num_jobs' jobs, and writes models in dirs like
     exp/tdnn_a/model_24.{1,2,3,..<num_jobs>}
-
     We cannot easily use a single parallel SGE job to do the main training,
     because the computation of which archive and which --frame option
     to use for each job is a little complex, so we spawn each one separately.
@@ -318,7 +318,6 @@ def train_one_iteration(model_dir, _iter, random_seed, egs_dir,
                         feature_dim, archives_minibatch_count,
                         shrinkage_value=1.0, current_dropout=0.0):
     """ Called from train for one iteration of neural network training
-
     Selected args:
         shrinkage_value: If value is 1.0, no shrinkage is done; otherwise
             parameter values are scaled by this value.
@@ -342,8 +341,7 @@ def train_one_iteration(model_dir, _iter, random_seed, egs_dir,
             fid.write(str(random_seed))
 
     # Sets off some background jobs to compute train and validation set objectives
-    # TODO: uncomment
-    # eval_trained_dnn(model_dir, _iter, egs_dir, run_opts)
+    eval_trained_dnn(model_dir, _iter, egs_dir, run_opts)
 
     new_model = "{0}/model_{1}/model.meta".format(model_dir, _iter + 1)
     if utils.is_correct_model_dir("{0}/model_{1}".format(model_dir, _iter + 1)):
@@ -406,14 +404,37 @@ def train_one_iteration(model_dir, _iter, random_seed, egs_dir,
 
     if do_average and len(models_to_average) > 1:
         # average the output of the different jobs.
-        # TODO
         nets_dirs = []
         for n in models_to_average:
             nets_dirs.append("{0}/model_{1}.{2}".format(model_dir, _iter + 1, n))
-        utils.get_average_nnet_model(
-            dir=model_dir, iter=_iter,
-            nnets_list=" ".join(nets_dirs),
-            run_opts=run_opts)
+        # utils.get_average_nnet_model(
+        #     dir=model_dir, iter=_iter,
+        #     nnets_list=" ".join(nets_dirs),
+        #     run_opts=run_opts)
+        output_dir = os.path.join(model_dir,"model_"+str(_iter+1))
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        avg_command = "python2 local/contrib/avg_checkpoint.py --checkpoints {checkpoints} --num_last_checkpoints {" \
+                      "num_check} --output_path {output_path}".format(checkpoints=",".join(nets_dirs),num_check=int(
+                      len(nets_dirs)),output_path=os.path.join(output_dir,'model'))
+        print(avg_command)
+        p = subprocess.Popen(avg_command, shell=True, stdout=subprocess.PIPE)
+        [stdout, stderr] = p.communicate()
+        if p.returncode is not 0:
+            output = "Command exited with status {0}: {1}".format(p.returncode, stderr.decode('utf-8'))
+            raise Exception(output)
+        # rename averaged model
+        for avg_file in glob.glob(os.path.join(output_dir,'model-*')):
+            avg_file_name, avg_file_ext = os.path.splitext(avg_file)
+            new_avg_filename = re.sub('/model-.*','/model',avg_file_name)
+            os.rename(avg_file,new_avg_filename+avg_file_ext)
+        # copy model_*.1 files
+        assert os.path.exists(os.path.join(model_dir,"model_"+str(_iter+1)+".1")), "{0} not exists".format(
+            os.path.join(model_dir,"model_"+str(_iter+1)+".1"))
+        # shutil.copy("{model_dir}/model_{iter}.1/checkpoint".format(model_dir=model_dir, iter=_iter + 1),output_dir)
+        shutil.copy("{model_dir}/model_{iter}.1/done".format(model_dir=model_dir, iter=_iter + 1),output_dir)
+        # sys.exit()
+
     else:
         # choose the best model from different jobs
         utils.copy_best_nnet_dir(_dir=model_dir, _iter=_iter, best_model_index=best_model)
@@ -467,7 +488,6 @@ def eval_trained_dnn(main_dir, _iter, egs_dir, run_opts):
 
 def train(args, run_opts):
     """ The main function for training.
-
     Args:
         args: a Namespace object with the required parameters
             obtained from the function process_args()
@@ -615,13 +635,13 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.argv = ["train_dnn.py","--stage=47","--tf-model-class=ModelWithoutDropoutTdnn",
-                "--cmd=/home/feit/Tool/kaldi/egs/wsj/s5/utils/parallel/run.pl",
-            "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
-            "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=2", "--initial-effective-lrate=0.001",
-            "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=3",
-                "--dropout-schedule=0,0@0.20,0.1@0.50,0",
-                "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs",
-                "--preserve-model-interval=10", "--use-gpu=yes",
-                "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"]
+    # sys.argv = ["train_dnn.py","--stage=47","--tf-model-class=ModelWithoutDropoutTdnn",
+    #             "--cmd=/home/feit/Tool/kaldi/egs/wsj/s5/utils/parallel/run.pl",
+    #         "--num-targets=7323", "--proportional-shrink=10", "--minibatch-size=64", "--max-param-change=2",
+    #         "--momentum=0.5", "--num-jobs-initial=1", "--num-jobs-final=2", "--initial-effective-lrate=0.001",
+    #         "--final-effective-lrate=0.0001", "--random-seed=2468", "--num-epochs=3",
+    #             "--dropout-schedule=0,0@0.20,0.1@0.50,0",
+    #             "--egs-dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test/egs",
+    #             "--preserve-model-interval=10", "--use-gpu=yes",
+    #             "--dir=/media/feit/Work/Work/SpeakerID/Kaldi_Voxceleb/exp_clean/xvector_tf_but_test"]
     main()
